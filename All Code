@@ -1,0 +1,165 @@
+import pygame
+import random
+import os
+
+Width=800
+Height=600
+FPS=30
+GROUND=Height-30
+
+#Constants
+PLAYER_ACC=0.9
+PLAYER_FRICTION=-0.12
+PLAYER_GRAV=0.9
+vec=pygame.math.Vector2
+
+#Define Colors
+White=(255,255,255)
+Black=(0,0,0)
+Red=(255,0,0)
+Green=(0,255,0)
+Blue=(0,0,255)
+
+#Asset Folders
+game_folder=os.path.dirname(__file__)
+img_folder=os.path.join(game_folder, "img")
+
+#Player Class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image=pygame.Surface((50,50))
+        self.image.fill(Red)
+        self.rect=self.image.get_rect()
+        self.rect.center=(Width /2, Height/2)
+        self.rect.bottom=(GROUND)
+        
+
+        self.pos=vec(10, GROUND-60)
+        self.vel=vec(0,0)
+        self.acc=vec(0,0)
+
+        self.speedx=0
+        self.shield=100
+        self.shoot_delay=100
+        self.last_shot=pygame.time.get_ticks()
+
+    def update(self):
+        self.acc=vec(0, PLAYER_GRAV)
+        #Returns a list of all pressed keys
+        keystate=pygame.key.get_pressed()
+
+        
+
+        #Checks to see which keys were in the list (or pressed)
+        if keystate[pygame.K_RIGHT]:
+            self.acc.x+=PLAYER_ACC
+        if keystate[pygame.K_LEFT]:
+            self.acc.x+=-PLAYER_ACC
+        if self.vel.y==0 and keystate[pygame.K_UP]:
+            self.vel.y=-20
+        if keystate[pygame.K_SPACE]:
+            self.shoot()
+
+        self.rect.x+=self.speedx
+
+    #Apply Friction in the X Direction
+        self.acc.x+=self.vel.x*PLAYER_FRICTION
+
+    #Equations of Motion
+        self.vel+=self.acc
+        self.pos+=self.vel+0.5*self.acc
+
+    #Wrap Around the Screen
+        if self.pos.x>Width:
+            self.pos.x=0
+        if self.pos.x<0:
+            self.pos.x=Width
+
+    #Simulate Ground
+        if self.pos.y>GROUND:
+            self.pos.y=GROUND+1
+            self.vel.y=0
+
+        self.rect.midbottom=self.pos
+
+    def shoot(self):
+        now=pygame.time.get_ticks()
+        if now-self.last_shot>self.shoot_delay:
+            self.last_shot=now
+            bullet=Bullet(self.rect.centerx, self.rect.top)
+            all_sprites.add(bullet)
+            bullets.add(bullet)
+            
+            
+
+#Platform Class
+class Platform(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image=pygame.Surface((100,20))
+        self.image.fill(Green)
+        self.rect=self.image.get_rect()
+        self.rect.center=(Width /2, Height /2)
+
+    def update(self):
+        self.rect.x-=5
+        if self.rect.right<0:
+            self.rect.left=Width
+
+#Bullet Class
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image=pygame.Surface((20,10))
+        self.image.fill(Blue)
+        
+        self.rect=self.image.get_rect()
+        self.rect.bottom=y
+        self.rect.centerx=x
+        self.speedy=-10
+
+    def update(self):
+        self.rect.y+=self.speedy
+        if self.rect.bottom<0:
+            self.kill()
+
+#Initialize Variables
+pygame.init()
+pygame.mixer.init()
+screen=pygame.display.set_mode((Width, Height))
+pygame.display.set_caption("My Game")
+
+clock=pygame.time.Clock()
+
+#Sprite Groups
+all_sprites=pygame.sprite.Group()
+bullets=pygame.sprite.Group()
+player=Player()
+all_sprites.add(player)
+platform=Platform()
+all_sprites.add(platform)
+
+
+#Game Loop
+running=True
+while running:
+    clock.tick(FPS)
+
+    #Process Ecvents
+    for event in pygame.event.get():
+        if event.type==pygame.QUIT:
+            running=False
+
+    #Update
+    all_sprites.update()
+
+    #Draw
+    screen.fill(Black)
+    all_sprites.draw(screen)
+
+    #Flip After Drawing
+    pygame.display.flip()
+
+pygame.quit()
+                        
